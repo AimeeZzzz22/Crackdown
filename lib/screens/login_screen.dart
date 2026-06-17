@@ -1,0 +1,205 @@
+import 'package:flutter/material.dart';
+import '../theme/colors.dart';
+import '../widgets/crackdown_logo.dart';
+import '../widgets/auth_text_field.dart';
+import '../services/auth_service.dart';
+import '../utils/validation.dart';
+import 'signup_screen.dart';
+import 'forgot_password_email_screen.dart';
+import 'home_screen.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  bool _keepSignedIn = true;
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _handleSignIn() {
+    final errors = AuthService.instance.signIn(
+      usernameOrEmail: _usernameController.text,
+      password: _passwordController.text,
+    );
+
+    if (errors.isNotEmpty) {
+      showValidationDialog(context, errors);
+      return;
+    }
+
+    // Success — clear the entire back stack and go to HomeScreen
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      (_) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [kBackgroundTop, kBackgroundBottom],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                const SizedBox(height: 40),
+                Center(child: const CrackdownLogo()),
+                const SizedBox(height: 36),
+                Text(
+                  'SIGN IN WITH USERNAME OR EMAIL',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: kCrackText,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                AuthTextField(
+                  hint: 'Username & Email',
+                  icon: Icons.person_outline,
+                  controller: _usernameController,
+                ),
+                const SizedBox(height: 10),
+                AuthTextField(
+                  hint: 'Password',
+                  icon: Icons.lock_outline,
+                  isPassword: true,
+                  controller: _passwordController,
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ForgotPasswordEmailScreen()),
+                    ),
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: kCrackText,
+                        ),
+                        children: [
+                          const TextSpan(text: 'FORGOT '),
+                          TextSpan(
+                            text: 'USERNAME & PASSWORD',
+                            style: TextStyle(color: kForgotHighlight),
+                          ),
+                          const TextSpan(text: '?'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => setState(() => _keepSignedIn = !_keepSignedIn),
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: _keepSignedIn ? kCheckbox : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: kCheckbox, width: 2),
+                        ),
+                        child: _keepSignedIn
+                            ? const Icon(Icons.check, color: Colors.white, size: 16)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Keep me signed in',
+                      style: TextStyle(color: kCrackText, fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _handleSignIn,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kButtonBackground,
+                      foregroundColor: kButtonText,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Sign in',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: GestureDetector(
+                    onTap: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                    ),
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(fontSize: 14, color: Colors.white),
+                        children: [
+                          const TextSpan(text: "Don't have an account? "),
+                          TextSpan(
+                            text: 'Sign Up',
+                            style: TextStyle(
+                              color: kForgotHighlight,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
