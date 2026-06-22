@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/colors.dart';
 import '../widgets/bottom_nav_bar.dart';
+import 'edit_todo_screen.dart';
+import 'edit_event_screen.dart';
 
 // Simple data models
 class CalendarTask {
@@ -9,6 +11,7 @@ class CalendarTask {
   final String tag;
   final String time; // e.g. "8AM"
   final Color? goalColor;
+  final bool isEvent; // true for event, false for todo
   bool completed;
 
   CalendarTask({
@@ -16,6 +19,7 @@ class CalendarTask {
     required this.tag,
     required this.time,
     this.goalColor,
+    this.isEvent = false,
     this.completed = false,
   });
 }
@@ -40,6 +44,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       tag: '# phone num: 217·······',
       time: '8AM',
       goalColor: null,
+      isEvent: true, // This is an event
       completed: true,
     ),
     CalendarTask(
@@ -47,18 +52,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
       tag: '# Bring the textbook',
       time: '9AM',
       goalColor: null,
+      isEvent: true, // This is an event
     ),
     CalendarTask(
       title: 'Finish the Econ HW',
       tag: '# Achieve • Reading',
       time: '1PM',
       goalColor: const Color(0xFFE57373), // red goal color
+      isEvent: false, // This is a todo
     ),
     CalendarTask(
       title: 'Revise the Resume',
       tag: '# Adding the updated activities',
       time: '3PM',
       goalColor: const Color(0xFFB0BEC5), // gray goal color
+      isEvent: false, // This is a todo
     ),
   ];
 
@@ -361,6 +369,41 @@ class _TaskRow extends StatelessWidget {
 
   const _TaskRow({required this.task, required this.onToggle});
 
+  void _openEditScreen(BuildContext context) {
+    if (task.isEvent) {
+      // Navigate to Edit Event Screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EditEventScreen(
+            initialTitle: task.title,
+            initialDate: DateTime(2023, 12, 2), // Use the selected date from calendar
+            initialStartTime: task.time,
+            initialEndTime: '',
+            initialLocation: '',
+            initialNotification: true,
+            initialRepeat: 'Never',
+            initialTag: task.tag.replaceAll('#', '').trim(),
+          ),
+        ),
+      );
+    } else {
+      // Navigate to Edit Todo Screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EditTodoScreen(
+            initialTitle: task.title,
+            initialDate: DateTime(2023, 12, 2), // Use the selected date from calendar
+            initialNotes: '',
+            initialRepeat: 'Never',
+            initialTag: task.tag.replaceAll('#', '').trim(),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -379,74 +422,77 @@ class _TaskRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          // Task card
+          // Task card - Make it clickable
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: onToggle,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 2, right: 8),
-                              child: Icon(
-                                task.completed
-                                    ? Icons.check_circle
-                                    : Icons.radio_button_unchecked,
-                                size: 18,
-                                color: task.completed
-                                    ? Colors.black
-                                    : kCalendarGray,
+            child: GestureDetector(
+              onTap: () => _openEditScreen(context),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: onToggle,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 2, right: 8),
+                                child: Icon(
+                                  task.completed
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  size: 18,
+                                  color: task.completed
+                                      ? Colors.black
+                                      : kCalendarGray,
+                                ),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(task.title,
-                                    style: GoogleFonts.merriweather(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black,
-                                      decoration: task.completed
-                                          ? TextDecoration.lineThrough
-                                          : null,
-                                    )),
-                                const SizedBox(height: 2),
-                                Text(task.tag,
-                                    style: GoogleFonts.epilogue(
-                                        fontSize: 11,
-                                        color: kCalendarTaskText)),
-                              ],
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(task.title,
+                                      style: GoogleFonts.merriweather(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black,
+                                        decoration: task.completed
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                      )),
+                                  const SizedBox(height: 2),
+                                  Text(task.tag,
+                                      style: GoogleFonts.epilogue(
+                                          fontSize: 11,
+                                          color: kCalendarTaskText)),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  // Goal color bar
-                  if (task.goalColor != null)
-                    Container(
-                      width: 6,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: task.goalColor,
-                        borderRadius: const BorderRadius.horizontal(
-                            right: Radius.circular(8)),
+                    // Goal color bar
+                    if (task.goalColor != null)
+                      Container(
+                        width: 6,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: task.goalColor,
+                          borderRadius: const BorderRadius.horizontal(
+                              right: Radius.circular(8)),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
