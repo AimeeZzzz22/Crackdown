@@ -9,7 +9,9 @@ import 'edit_event_screen.dart';
 class CalendarTask {
   final String title;
   final String tag;
-  final String time; // e.g. "8AM"
+  final String? time; // e.g. "8AM" - optional
+  final DateTime? date; // Specific date for this task - null means show on all dates
+  final DateTime createdAt; // For ordering tasks created first
   final Color? goalColor;
   final bool isEvent; // true for event, false for todo
   bool completed;
@@ -17,11 +19,29 @@ class CalendarTask {
   CalendarTask({
     required this.title,
     required this.tag,
-    required this.time,
+    this.time,
+    this.date,
+    DateTime? createdAt,
     this.goalColor,
     this.isEvent = false,
     this.completed = false,
-  });
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  // Helper to parse time for sorting (e.g., "8AM" -> 8, "1PM" -> 13)
+  int? get timeValue {
+    if (time == null) return null;
+    final timeStr = time!.toUpperCase();
+    final match = RegExp(r'(\d+)(AM|PM)?').firstMatch(timeStr);
+    if (match == null) return null;
+
+    int hour = int.tryParse(match.group(1) ?? '0') ?? 0;
+    final period = match.group(2);
+
+    if (period == 'PM' && hour != 12) hour += 12;
+    if (period == 'AM' && hour == 12) hour = 0;
+
+    return hour;
+  }
 }
 
 class CalendarScreen extends StatefulWidget {
@@ -37,46 +57,137 @@ class _CalendarScreenState extends State<CalendarScreen> {
   bool _completedExpanded = true;
   final _searchController = TextEditingController();
 
-  // Sample tasks for selected day
+  // Sample tasks with various dates and times
   final List<CalendarTask> _tasks = [
+    // Tasks for December 2
     CalendarTask(
       title: 'Schedule the meeting with\nMckinley Health Center',
       tag: '# phone num: 217·······',
       time: '8AM',
+      date: DateTime(2023, 12, 2),
+      createdAt: DateTime(2023, 12, 1, 9, 0),
       goalColor: null,
-      isEvent: true, // This is an event
+      isEvent: true,
       completed: true,
     ),
     CalendarTask(
       title: 'Math 231 Lecture',
       tag: '# Bring the textbook',
       time: '9AM',
+      date: DateTime(2023, 12, 2),
+      createdAt: DateTime(2023, 12, 1, 10, 0),
       goalColor: null,
-      isEvent: true, // This is an event
+      isEvent: true,
     ),
     CalendarTask(
       title: 'Finish the Econ HW',
       tag: '# Achieve • Reading',
       time: '1PM',
-      goalColor: const Color(0xFFE57373), // red goal color
-      isEvent: false, // This is a todo
+      date: DateTime(2023, 12, 2),
+      createdAt: DateTime(2023, 12, 1, 11, 0),
+      goalColor: const Color(0xFFE57373),
+      isEvent: false,
     ),
     CalendarTask(
       title: 'Revise the Resume',
       tag: '# Adding the updated activities',
       time: '3PM',
-      goalColor: const Color(0xFFB0BEC5), // gray goal color
-      isEvent: false, // This is a todo
+      date: DateTime(2023, 12, 2),
+      createdAt: DateTime(2023, 12, 1, 12, 0),
+      goalColor: const Color(0xFFB0BEC5),
+      isEvent: false,
+    ),
+    // Task without time (should appear at top)
+    CalendarTask(
+      title: 'Review Goals',
+      tag: '# Weekly review',
+      time: null, // No time
+      date: DateTime(2023, 12, 2),
+      createdAt: DateTime(2023, 12, 1, 8, 0),
+      goalColor: const Color(0xFF81C784),
+      isEvent: false,
+    ),
+    // Task without date (shows on all dates)
+    CalendarTask(
+      title: 'Daily Meditation',
+      tag: '# Mindfulness',
+      time: null,
+      date: null, // No specific date - shows on all days
+      createdAt: DateTime(2023, 11, 30),
+      goalColor: const Color(0xFF64B5F6),
+      isEvent: false,
+    ),
+    // Tasks for other dates
+    CalendarTask(
+      title: 'Project Meeting',
+      tag: '# Team sync',
+      time: '2PM',
+      date: DateTime(2023, 12, 8),
+      createdAt: DateTime(2023, 12, 7),
+      goalColor: null,
+      isEvent: true,
+    ),
+    CalendarTask(
+      title: 'Gym Session',
+      tag: '# Fitness',
+      time: null,
+      date: DateTime(2023, 12, 15),
+      createdAt: DateTime(2023, 12, 14),
+      goalColor: const Color(0xFFE57373),
+      isEvent: false,
     ),
   ];
 
-  // Days that have events (dot indicator)
-  final Set<int> _daysWithEvents = {2, 8, 15, 23, 24};
+  // Get days with events dynamically
+  Set<int> get _daysWithEvents {
+    final days = <int>{};
+    for (var task in _tasks) {
+      if (task.date != null &&
+          task.date!.month == _currentMonth.month &&
+          task.date!.year == _currentMonth.year) {
+        days.add(task.date!.day);
+      }
+    }
+    return days;
+  }
+
+  // Filter tasks for the selected date
+  List<CalendarTask> get _filteredTasks {
+    return _tasks.where((task) {
+      // Include tasks without dates (they appear on all days)
+      if (task.date == null) return true;
+
+      // Include tasks that match the selected day
+      return task.date!.year == _selectedDay.year &&
+          task.date!.month == _selectedDay.month &&
+          task.date!.day == _selectedDay.day;
+    }).toList();
+  }
+
+  // Sort tasks: no-time first (by creation), then by time
+  List<CalendarTask> _sortTasks(List<CalendarTask> tasks) {
+    final sorted = List<CalendarTask>.from(tasks);
+    sorted.sort((a, b) {
+      // Both have no time - sort by creation time
+      if (a.timeValue == null && b.timeValue == null) {
+        return a.createdAt.compareTo(b.createdAt);
+      }
+      // a has no time - comes first
+      if (a.timeValue == null) return -1;
+      // b has no time - comes first
+      if (b.timeValue == null) return 1;
+      // Both have time - sort by time, then by creation
+      final timeCompare = a.timeValue!.compareTo(b.timeValue!);
+      if (timeCompare != 0) return timeCompare;
+      return a.createdAt.compareTo(b.createdAt);
+    });
+    return sorted;
+  }
 
   List<CalendarTask> get _completedTasks =>
-      _tasks.where((t) => t.completed).toList();
+      _sortTasks(_filteredTasks.where((t) => t.completed).toList());
   List<CalendarTask> get _incompleteTasks =>
-      _tasks.where((t) => !t.completed).toList();
+      _sortTasks(_filteredTasks.where((t) => !t.completed).toList());
 
   @override
   void dispose() {
@@ -416,7 +527,7 @@ class _TaskRow extends StatelessWidget {
             width: 40,
             child: Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: Text(task.time,
+              child: Text(task.time ?? '',
                   style: GoogleFonts.epilogue(
                       fontSize: 11, color: kCalendarGray)),
             ),
