@@ -489,7 +489,7 @@ class _TaskRow extends StatelessWidget {
           builder: (_) => EditEventScreen(
             initialTitle: task.title,
             initialDate: DateTime(2023, 12, 2), // Use the selected date from calendar
-            initialStartTime: task.time,
+            initialStartTime: task.time ?? '',
             initialEndTime: '',
             initialLocation: '',
             initialNotification: true,
