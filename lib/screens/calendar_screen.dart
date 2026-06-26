@@ -7,6 +7,7 @@ import 'edit_event_screen.dart';
 
 // Simple data models
 class CalendarTask {
+  final String id; // Unique identifier for the task
   final String title;
   final String tag;
   final String? time; // e.g. "8AM" - optional
@@ -17,6 +18,7 @@ class CalendarTask {
   bool completed;
 
   CalendarTask({
+    String? id,
     required this.title,
     required this.tag,
     this.time,
@@ -25,7 +27,8 @@ class CalendarTask {
     this.goalColor,
     this.isEvent = false,
     this.completed = false,
-  }) : createdAt = createdAt ?? DateTime.now();
+  }) : id = id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+       createdAt = createdAt ?? DateTime.now();
 
   // Helper to parse time for sorting (e.g., "8AM" -> 8, "1PM" -> 13)
   int? get timeValue {
@@ -189,6 +192,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<CalendarTask> get _incompleteTasks =>
       _sortTasks(_filteredTasks.where((t) => !t.completed).toList());
 
+  // Handle task update - remove old task and add updated one
+  void _updateTask(String taskId, Map<String, dynamic> updatedData) {
+    setState(() {
+      // Remove the old task
+      _tasks.removeWhere((task) => task.id == taskId);
+
+      // Create updated task with the same ID
+      final newTask = CalendarTask(
+        id: taskId,
+        title: updatedData['title'] ?? '',
+        tag: '#${updatedData['tag'] ?? ''}',
+        time: updatedData['startTime'] ?? updatedData['time'],
+        date: updatedData['date'],
+        goalColor: null, // Preserve or update as needed
+        isEvent: updatedData.containsKey('startTime'), // If has startTime, it's an event
+        completed: false,
+      );
+
+      // Add the updated task
+      _tasks.add(newTask);
+    });
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -296,16 +322,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                       if (_completedExpanded)
                         ..._completedTasks
-                            .map((t) => _TaskRow(task: t, onToggle: () {
-                                  setState(() => t.completed = !t.completed);
-                                })),
+                            .map((t) => _TaskRow(
+                                  task: t,
+                                  onToggle: () {
+                                    setState(() => t.completed = !t.completed);
+                                  },
+                                  onUpdate: _updateTask,
+                                )),
                     ],
 
                     // Incomplete tasks by time
                     ..._incompleteTasks
-                        .map((t) => _TaskRow(task: t, onToggle: () {
-                              setState(() => t.completed = !t.completed);
-                            })),
+                        .map((t) => _TaskRow(
+                              task: t,
+                              onToggle: () {
+                                setState(() => t.completed = !t.completed);
+                              },
+                              onUpdate: _updateTask,
+                            )),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -477,18 +511,25 @@ class _DayCell extends StatelessWidget {
 class _TaskRow extends StatelessWidget {
   final CalendarTask task;
   final VoidCallback onToggle;
+  final Function(String, Map<String, dynamic>) onUpdate;
 
-  const _TaskRow({required this.task, required this.onToggle});
+  const _TaskRow({
+    required this.task,
+    required this.onToggle,
+    required this.onUpdate,
+  });
 
-  void _openEditScreen(BuildContext context) {
+  Future<void> _openEditScreen(BuildContext context) async {
+    Map<String, dynamic>? updatedData;
+
     if (task.isEvent) {
-      // Navigate to Edit Event Screen
-      Navigator.push(
+      // Navigate to Edit Event Screen and await result
+      updatedData = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => EditEventScreen(
             initialTitle: task.title,
-            initialDate: DateTime(2023, 12, 2), // Use the selected date from calendar
+            initialDate: task.date ?? DateTime.now(),
             initialStartTime: task.time ?? '',
             initialEndTime: '',
             initialLocation: '',
@@ -499,19 +540,24 @@ class _TaskRow extends StatelessWidget {
         ),
       );
     } else {
-      // Navigate to Edit Todo Screen
-      Navigator.push(
+      // Navigate to Edit Todo Screen and await result
+      updatedData = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => EditTodoScreen(
             initialTitle: task.title,
-            initialDate: DateTime(2023, 12, 2), // Use the selected date from calendar
+            initialDate: task.date ?? DateTime.now(),
             initialNotes: '',
             initialRepeat: 'Never',
             initialTag: task.tag.replaceAll('#', '').trim(),
           ),
         ),
       );
+    }
+
+    // If data was returned (user clicked Update), call the update callback
+    if (updatedData != null) {
+      onUpdate(task.id, updatedData);
     }
   }
 
