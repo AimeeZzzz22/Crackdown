@@ -49,6 +49,16 @@ class _EditTodoScreenState extends State<EditTodoScreen> {
   final List<String> _userTags = [];
   int _navIndex = 0;
 
+  // Track if any changes were made
+  bool get _hasChanges {
+    return _titleController.text != widget.initialTitle ||
+        _notesController.text != widget.initialNotes ||
+        _tagController.text != widget.initialTag ||
+        _selectedDate != widget.initialDate ||
+        _repeat != widget.initialRepeat ||
+        _selectedGoal != widget.initialGoal;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +71,11 @@ class _EditTodoScreenState extends State<EditTodoScreen> {
     if (_selectedDate != null) {
       _calendarMonth = DateTime(_selectedDate!.year, _selectedDate!.month);
     }
+
+    // Add listeners to detect text changes
+    _titleController.addListener(() => setState(() {}));
+    _notesController.addListener(() => setState(() {}));
+    _tagController.addListener(() => setState(() {}));
   }
 
   @override
@@ -303,20 +318,30 @@ class _EditTodoScreenState extends State<EditTodoScreen> {
                       ),
                       const SizedBox(height: 28),
 
-                      // Add / Save button
+                      // Add / Update button
                       Center(
                         child: SizedBox(
                           width: 160,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () {
+                              // Return updated data to previous screen
+                              Navigator.pop(context, {
+                                'title': _titleController.text,
+                                'date': _selectedDate,
+                                'notes': _notesController.text,
+                                'repeat': _repeat,
+                                'tag': _tagController.text,
+                                'goal': _selectedGoal,
+                              });
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: kTodoFieldBg,
                               foregroundColor: kTodoTitle,
                               elevation: 0,
                               shape: const StadiumBorder(),
                             ),
-                            child: Text('Add',
+                            child: Text(_hasChanges ? 'Update' : 'Add',
                                 style: GoogleFonts.merriweather(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w900,

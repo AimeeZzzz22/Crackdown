@@ -54,6 +54,18 @@ class _EditEventScreenState extends State<EditEventScreen> {
   final List<String> _userTags = [];
   int _navIndex = 0;
 
+  // Track if any changes were made
+  bool get _hasChanges {
+    return _titleController.text != widget.initialTitle ||
+        _locationController.text != widget.initialLocation ||
+        _tagController.text != widget.initialTag ||
+        _startTimeController.text != widget.initialStartTime ||
+        _endTimeController.text != widget.initialEndTime ||
+        _selectedDate != widget.initialDate ||
+        _notificationOn != widget.initialNotification ||
+        _repeat != widget.initialRepeat;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +80,13 @@ class _EditEventScreenState extends State<EditEventScreen> {
     if (_selectedDate != null) {
       _calendarMonth = DateTime(_selectedDate!.year, _selectedDate!.month);
     }
+
+    // Add listeners to detect text changes
+    _titleController.addListener(() => setState(() {}));
+    _locationController.addListener(() => setState(() {}));
+    _tagController.addListener(() => setState(() {}));
+    _startTimeController.addListener(() => setState(() {}));
+    _endTimeController.addListener(() => setState(() {}));
   }
 
   @override
@@ -438,20 +457,32 @@ class _EditEventScreenState extends State<EditEventScreen> {
                       ],
                       const SizedBox(height: 28),
 
-                      // Save button
+                      // Add / Update button
                       Center(
                         child: SizedBox(
                           width: 160,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () {
+                              // Return updated data to previous screen
+                              Navigator.pop(context, {
+                                'title': _titleController.text,
+                                'date': _selectedDate,
+                                'startTime': _startTimeController.text,
+                                'endTime': _endTimeController.text,
+                                'location': _locationController.text,
+                                'notification': _notificationOn,
+                                'repeat': _repeat,
+                                'tag': _tagController.text,
+                              });
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: kTodoFieldBg,
                               foregroundColor: kTodoTitle,
                               elevation: 0,
                               shape: const StadiumBorder(),
                             ),
-                            child: Text('Add',
+                            child: Text(_hasChanges ? 'Update' : 'Add',
                                 style: GoogleFonts.merriweather(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w900,
