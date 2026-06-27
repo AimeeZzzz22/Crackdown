@@ -187,8 +187,11 @@ class _EditTodoScreenState extends State<EditTodoScreen> {
                             Text(
                               _selectedDate != null
                                   ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
-                                  : '16/7/2023',
-                              style: GoogleFonts.epilogue(color: kTodoTitle, fontSize: 14),
+                                  : 'Select a date (optional)',
+                              style: GoogleFonts.epilogue(
+                                color: _selectedDate != null ? kTodoTitle : kTodoPlaceholder,
+                                fontSize: 14,
+                              ),
                             ),
                           ]),
                         ),

@@ -529,7 +529,7 @@ class _TaskRow extends StatelessWidget {
         MaterialPageRoute(
           builder: (_) => EditEventScreen(
             initialTitle: task.title,
-            initialDate: task.date ?? DateTime.now(),
+            initialDate: task.date, // Use actual task date (can be null)
             initialStartTime: task.time ?? '',
             initialEndTime: '',
             initialLocation: '',
@@ -546,7 +546,7 @@ class _TaskRow extends StatelessWidget {
         MaterialPageRoute(
           builder: (_) => EditTodoScreen(
             initialTitle: task.title,
-            initialDate: task.date ?? DateTime.now(),
+            initialDate: task.date, // Use actual task date (can be null)
             initialNotes: '',
             initialRepeat: 'Never',
             initialTag: task.tag.replaceAll('#', '').trim(),
